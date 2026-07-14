@@ -188,12 +188,16 @@ enum PixelCat {
             fill(14, 3, 1, 1)
             // 꼬리 (몸을 감쌈)
             fill(4, 8, 2, 2)
-            // Zzz — 프레임마다 위치 토글
+            // Z — 3×3 픽셀 글자(윗줄·대각·아랫줄), 프레임마다 떠오르듯 위치 이동
+            func zGlyph(_ x: Int, _ y: Int) {
+                fill(x, y, 3, 1)
+                fill(x + 1, y + 1, 1, 1)
+                fill(x, y + 2, 3, 1)
+            }
             if index == 0 {
-                fill(16, 2, 1, 1)
+                zGlyph(15, 1)
             } else {
-                fill(16, 1, 1, 1)
-                fill(17, 3, 1, 1)
+                zGlyph(14, 0)
             }
         }
     }

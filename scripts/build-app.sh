@@ -37,6 +37,7 @@ if [ -d .build/release/TokenCat_TokenCat.bundle ]; then
   cp -R .build/release/TokenCat_TokenCat.bundle "$APP/Contents/Resources/"
 fi
 cp scripts/Info.plist "$APP/Contents/Info.plist"
+cp assets/AppIcon.icns "$APP/Contents/Resources/"
 
 echo "▸ 서명: $CODESIGN_IDENTITY"
 codesign --force --deep -s "$CODESIGN_IDENTITY" "$APP"

@@ -6,6 +6,8 @@
 	<string>ko</string>
 	<key>CFBundleExecutable</key>
 	<string>TokenCat</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>dev.tokencat.TokenCat</string>
 	<key>CFBundleInfoDictionaryVersion</key>

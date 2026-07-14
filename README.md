@@ -1,5 +1,9 @@
 # 🐱 TokenCat
 
+<p align="center">
+  <img src="assets/tokencat-run.gif" width="252" alt="TokenCat — 달리는 픽셀 고양이">
+</p>
+
 macOS 메뉴바에서 픽셀 고양이가 뛰어다니고, Claude(Claude Code) 토큰 소모 속도가
 빨라질수록 고양이도 빨라집니다. 클릭하면 5시간 세션·주간 사용량 팝오버가 열립니다.
 
@@ -29,6 +33,17 @@ cd TokenCat
 - **서명 identity 생성**: 설치 중 macOS가 로그인 암호를 한 번 확인합니다
   (self-signed 인증서 신뢰 등록 — 정상 절차입니다).
 - **알림 권한**: 한도 80%/95% 경고에 쓰입니다. 허용 권장.
+
+### 껐다가 다시 켜기
+
+메뉴바 전용 앱이라 Dock에는 뜨지 않습니다. 팝오버의 ⏻ 버튼으로 끈 뒤 다시 켜려면:
+
+- **Spotlight**: `⌘ + Space` → "TokenCat" 입력 → Enter (제일 빠름)
+- Launchpad 또는 응용 프로그램 폴더에서 TokenCat 실행
+- 터미널: `open -a TokenCat`
+
+매번 켜기 귀찮으면 **고양이 클릭 → ⚙️ 설정 → 일반 → "로그인 시 자동 시작"** 을
+켜두세요. 재부팅해도 알아서 올라옵니다.
 
 업데이트는 `git pull && ./install.sh`, 제거는 응용 프로그램 폴더에서
 TokenCat.app 삭제.
