@@ -51,15 +51,13 @@ CODESIGN_IDENTITY="Developer ID Application: 이름 (TEAMID)" NOTARY_PROFILE=tok
   SDK 레코드가 없어 마커는 추정).
 - OAuth 토큰은 읽기 전용으로 사용하며 Anthropic 외 어디에도 전송·저장·로깅하지 않습니다.
 
-## 스프라이트
+## 스프라이트 교체
 
-기본 에셋은 자체 제작 픽셀 아트(팝타르트 고양이 + 무지개 트레일, 냥캣 오마주)로,
-`scripts/generate-assets.py`(PIL)로 재생성·수정할 수 있습니다.
-직접 그린 PNG로 바꾸려면 `Sources/TokenCat/Assets/`의 `cat_run_0~7.png`,
-`cat_rainbow_0~7.png`, `cat_sleep_0~1.png`, `cat_tired_0~1.png`,
-`cat_alert_0~1.png` (36×22pt @1x / 72×44px @2x)를 교체하고 다시 빌드하면 됩니다.
-PNG를 지우면 코드 생성 단색 고양이로 폴백되며, 색상 테마 3종(자동/주황/하늘,
-팝오버 🐾 버튼)은 이 폴백 스프라이트에만 적용됩니다.
+기본 스프라이트는 코드 생성 픽셀 고양이입니다 (색상 테마 3종: 자동/주황/하늘 —
+팝오버 🐾 버튼으로 순환). `Sources/TokenCat/Assets/`에 `cat_run_0~7.png`,
+`cat_rainbow_0~7.png`(무지개 모드 전용, 선택), `cat_sleep_0~1.png`,
+`cat_tired_0~1.png`, `cat_alert_0~1.png` (36×22pt @1x / 72×44px @2x)를 넣고
+다시 빌드하면 자동 교체됩니다.
 자세한 규격: [Sources/TokenCat/Assets/README.md](Sources/TokenCat/Assets/README.md)
 
 냥캣 오마주 에셋은 전부 자체 제작이어야 하며 원작 이미지를 사용하지 마세요.
