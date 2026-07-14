@@ -6,8 +6,10 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var engine: UsageEngine
 
-    @State private var calibrationInput = ""
+    @State private var sessionCalibrationInput = ""
+    @State private var weeklyCalibrationInput = ""
     @State private var calibrationMessage: String?
+    @State private var calibrationMessageIsError = false
 
     var body: some View {
         Form {
@@ -28,22 +30,39 @@ struct SettingsView: View {
                 LabeledContent("추정 주간 한도", value: Format.tokens(settings.estimatedWeeklyLimit) + " (추정)")
             }
 
-            Section("한도 캘리브레이션") {
+            Section("한도 캘리브레이션 (추정 모드용)") {
+                Text("Claude Code /usage에 보이는 %를 입력하면 추정 한도를 역산합니다. 공식 연동이 켜져 있는 동안 게이지는 공식 %를 그대로 쓰므로, 이 값은 연동을 끄거나 조회에 실패했을 때 사용됩니다.")
+                    .font(.caption).foregroundStyle(.secondary)
                 HStack {
-                    TextField("Claude Code /usage의 세션 % 입력", text: $calibrationInput)
-                    Button("보정") { calibrate() }
-                        .disabled(Double(calibrationInput) == nil)
+                    TextField("세션 % (예: 61)", text: $sessionCalibrationInput)
+                        .onSubmit { calibrateSession() }
+                    Button("보정") { calibrateSession() }
                 }
-                if settings.calibratedSessionLimit > 0 {
+                HStack {
+                    TextField("주간 % (예: 42)", text: $weeklyCalibrationInput)
+                        .onSubmit { calibrateWeekly() }
+                    Button("보정") { calibrateWeekly() }
+                }
+                if settings.calibratedSessionLimit > 0 || settings.calibratedWeeklyLimit > 0 {
                     HStack {
-                        Text("보정된 한도: \(Format.tokens(settings.calibratedSessionLimit))")
+                        Text([
+                            settings.calibratedSessionLimit > 0
+                                ? "세션 \(Format.tokens(settings.calibratedSessionLimit))" : nil,
+                            settings.calibratedWeeklyLimit > 0
+                                ? "주간 \(Format.tokens(settings.calibratedWeeklyLimit))" : nil,
+                        ].compactMap { $0 }.joined(separator: " · ") + " (보정됨)")
                             .font(.caption).foregroundStyle(.secondary)
-                        Button("초기화") { settings.calibratedSessionLimit = 0 }
-                            .controlSize(.mini)
+                        Button("초기화") {
+                            settings.calibratedSessionLimit = 0
+                            settings.calibratedWeeklyLimit = 0
+                            calibrationMessage = nil
+                        }
+                        .controlSize(.mini)
                     }
                 }
                 if let message = calibrationMessage {
-                    Text(message).font(.caption).foregroundStyle(.orange)
+                    Text(message).font(.caption)
+                        .foregroundStyle(calibrationMessageIsError ? .orange : .green)
                 }
             }
 
@@ -98,15 +117,47 @@ struct SettingsView: View {
         .frame(minHeight: 340, idealHeight: 460, maxHeight: 600)
     }
 
-    private func calibrate() {
-        guard let percent = Double(calibrationInput) else { return }
-        let blockTokens = engine.snapshot?.currentBlock?.totalTokens ?? 0
-        if let limit = PlanLimits.calibratedLimit(currentBlockTokens: blockTokens, usagePercent: percent) {
-            settings.calibratedSessionLimit = limit
-            calibrationMessage = nil
-            calibrationInput = ""
-        } else {
-            calibrationMessage = "보정 불가: 활성 세션 토큰이 없거나 %가 0~100 범위를 벗어났습니다."
+    /// "61%", " 61 " 같은 입력도 허용.
+    private func parsePercent(_ input: String) -> Double? {
+        Double(input.filter { $0.isNumber || $0 == "." })
+    }
+
+    private func calibrateSession() {
+        guard let percent = parsePercent(sessionCalibrationInput) else {
+            showCalibration(error: "숫자를 입력해주세요 (예: 61)")
+            return
         }
+        let blockTokens = engine.snapshot?.currentBlock?.totalTokens ?? 0
+        if let limit = PlanLimits.calibratedLimit(windowTokens: blockTokens, usagePercent: percent) {
+            settings.calibratedSessionLimit = limit
+            sessionCalibrationInput = ""
+            showCalibration(success: "세션 한도 보정됨: \(Format.tokens(limit)) (추정)")
+        } else {
+            showCalibration(error: blockTokens == 0
+                ? "활성 세션이 없어 보정할 수 없습니다 — Claude Code 사용 직후 시도해주세요."
+                : "%는 0 초과 100 이하로 입력해주세요.")
+        }
+    }
+
+    private func calibrateWeekly() {
+        guard let percent = parsePercent(weeklyCalibrationInput) else {
+            showCalibration(error: "숫자를 입력해주세요 (예: 42)")
+            return
+        }
+        let weeklyTokens = engine.snapshot?.weeklyTokens ?? 0
+        if let limit = PlanLimits.calibratedLimit(windowTokens: weeklyTokens, usagePercent: percent) {
+            settings.calibratedWeeklyLimit = limit
+            weeklyCalibrationInput = ""
+            showCalibration(success: "주간 한도 보정됨: \(Format.tokens(limit)) (추정)")
+        } else {
+            showCalibration(error: weeklyTokens == 0
+                ? "주간 사용 기록이 없어 보정할 수 없습니다."
+                : "%는 0 초과 100 이하로 입력해주세요.")
+        }
+    }
+
+    private func showCalibration(success: String? = nil, error: String? = nil) {
+        calibrationMessage = success ?? error
+        calibrationMessageIsError = (error != nil)
     }
 }

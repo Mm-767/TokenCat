@@ -28,6 +28,11 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(calibratedSessionLimit, forKey: "calibratedSessionLimit") }
     }
 
+    /// 주간 캘리브레이션 한도 (0 = 없음 → 세션 한도 × 8).
+    @Published var calibratedWeeklyLimit: Int {
+        didSet { defaults.set(calibratedWeeklyLimit, forKey: "calibratedWeeklyLimit") }
+    }
+
     /// 주간 리셋 수동 설정 (off면 롤링 7일).
     @Published var weeklyResetEnabled: Bool {
         didSet { defaults.set(weeklyResetEnabled, forKey: "weeklyResetEnabled") }
@@ -76,6 +81,7 @@ final class AppSettings: ObservableObject {
         plan = Plan(rawValue: defaults.string(forKey: "plan") ?? "") ?? .pro
         customSessionLimit = defaults.integer(forKey: "customSessionLimit")
         calibratedSessionLimit = defaults.integer(forKey: "calibratedSessionLimit")
+        calibratedWeeklyLimit = defaults.integer(forKey: "calibratedWeeklyLimit")
         weeklyResetEnabled = defaults.bool(forKey: "weeklyResetEnabled")
         weeklyResetWeekday = defaults.object(forKey: "weeklyResetWeekday") as? Int ?? 1
         weeklyResetHour = defaults.object(forKey: "weeklyResetHour") as? Int ?? 9
@@ -99,7 +105,8 @@ final class AppSettings: ObservableObject {
     }
 
     var estimatedWeeklyLimit: Int {
-        PlanLimits.weeklyLimit(sessionLimit: estimatedSessionLimit)
+        PlanLimits.weeklyLimit(sessionLimit: estimatedSessionLimit,
+                               calibratedLimit: calibratedWeeklyLimit > 0 ? calibratedWeeklyLimit : nil)
     }
 
     /// 주간 창 시작 (사용자 리셋 or 롤링 7일).

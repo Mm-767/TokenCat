@@ -36,14 +36,16 @@ public enum PlanLimits {
         return plan.sessionTokensEst ?? 500_000
     }
 
-    public static func weeklyLimit(sessionLimit: Int) -> Int {
-        sessionLimit * Plan.weeklyMultiplierEst
+    /// 추정 주간 한도. 우선순위: 주간 캘리브레이션 > 세션 한도 × 8.
+    public static func weeklyLimit(sessionLimit: Int, calibratedLimit: Int? = nil) -> Int {
+        if let calibrated = calibratedLimit, calibrated > 0 { return calibrated }
+        return sessionLimit * Plan.weeklyMultiplierEst
     }
 
-    /// `/usage` 실측 %로 한도 역산 (§F5 캘리브레이션).
-    /// 예: 현재 블록 1.2M 토큰인데 /usage가 60%라면 → 한도 2M.
-    public static func calibratedLimit(currentBlockTokens: Int, usagePercent: Double) -> Int? {
-        guard currentBlockTokens > 0, usagePercent > 0, usagePercent <= 100 else { return nil }
-        return Int(Double(currentBlockTokens) / (usagePercent / 100))
+    /// `/usage` 실측 %로 한도 역산 (§F5 캘리브레이션). 세션·주간 공용.
+    /// 예: 현재 창 토큰 1.2M인데 /usage가 60%라면 → 한도 2M.
+    public static func calibratedLimit(windowTokens: Int, usagePercent: Double) -> Int? {
+        guard windowTokens > 0, usagePercent > 0, usagePercent <= 100 else { return nil }
+        return Int(Double(windowTokens) / (usagePercent / 100))
     }
 }

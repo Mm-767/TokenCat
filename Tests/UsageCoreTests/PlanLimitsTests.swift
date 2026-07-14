@@ -18,14 +18,17 @@ final class PlanLimitsTests: XCTestCase {
     }
 
     func testCalibration() {
-        // 블록 1.2M 토큰, /usage 60% → 한도 2M
-        XCTAssertEqual(PlanLimits.calibratedLimit(currentBlockTokens: 1_200_000, usagePercent: 60), 2_000_000)
-        XCTAssertNil(PlanLimits.calibratedLimit(currentBlockTokens: 0, usagePercent: 60))
-        XCTAssertNil(PlanLimits.calibratedLimit(currentBlockTokens: 100, usagePercent: 0))
-        XCTAssertNil(PlanLimits.calibratedLimit(currentBlockTokens: 100, usagePercent: 101))
+        // 창 토큰 1.2M, /usage 60% → 한도 2M
+        XCTAssertEqual(PlanLimits.calibratedLimit(windowTokens: 1_200_000, usagePercent: 60), 2_000_000)
+        XCTAssertNil(PlanLimits.calibratedLimit(windowTokens: 0, usagePercent: 60))
+        XCTAssertNil(PlanLimits.calibratedLimit(windowTokens: 100, usagePercent: 0))
+        XCTAssertNil(PlanLimits.calibratedLimit(windowTokens: 100, usagePercent: 101))
     }
 
     func testWeeklyLimit() {
         XCTAssertEqual(PlanLimits.weeklyLimit(sessionLimit: 500_000), 4_000_000)
+        // 주간 캘리브레이션이 있으면 세션×8보다 우선
+        XCTAssertEqual(PlanLimits.weeklyLimit(sessionLimit: 500_000, calibratedLimit: 9_000_000), 9_000_000)
+        XCTAssertEqual(PlanLimits.weeklyLimit(sessionLimit: 500_000, calibratedLimit: 0), 4_000_000)
     }
 }
