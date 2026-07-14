@@ -55,6 +55,9 @@ CODESIGN_IDENTITY="Developer ID Application: 이름 (TEAMID)" NOTARY_PROFILE=tok
   "프로그래매틱 N tokens 포함" 캡션으로 분리 표시합니다 (관용 판별 — 실측 데이터에
   SDK 레코드가 없어 마커는 추정).
 - OAuth 토큰은 읽기 전용으로 사용하며 Anthropic 외 어디에도 전송·저장·로깅하지 않습니다.
+- 키체인 읽기는 `/usr/bin/security` 서브프로세스 방식입니다. 키체인 프롬프트에서
+  "항상 허용"을 누르면 이후 **다른 프로세스도 security CLI로 이 항목을 조용히 읽을 수
+  있게 되는** 트레이드오프가 있습니다 (앱 리빌드 시 프롬프트 재발 방지와 맞바꾼 것).
 
 ## 스프라이트 교체
 

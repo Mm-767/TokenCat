@@ -133,6 +133,20 @@ TokenCat/
 
 **성능 예산**: 유휴 CPU < 0.5%(러너 프레임 타이머 포함), 메모리 < 50MB. 파싱은 백그라운드 큐, 풀스캔은 시작 시 1회만.
 
+### macOS 키체인 접근 설계 (⚠ 암호 프롬프트 반복 방지 — 필수 준수)
+
+Claude Code는 macOS에서 OAuth 토큰을 키체인 항목 **`Claude Code-credentials`**(로그인 키체인)에 저장한다. 이 항목은 ACL로 보호되어 **다른 앱이 읽으려 하면 macOS가 암호 프롬프트를 띄우는 것이 정상 동작**이다. 프롬프트가 "반복"되는 원인과 대응:
+
+| 원인 | 대응 규칙 |
+|---|---|
+| 매 폴링(3분)마다 키체인 읽기 | **금지.** 액세스 토큰은 메모리에 캐시하고 만료(~60분) 시에만 재읽기 → 프롬프트 빈도 1/20 |
+| 프롬프트에서 "허용"만 클릭(1회성) | 온보딩 화면에서 **"항상 허용(Always Allow)"을 누르도록 안내** 문구+스크린샷 표시 |
+| 디버그 빌드마다 코드서명 변경(ad-hoc) → "항상 허용"이 무효화되어 매 빌드 재프롬프트 | 개발 중에도 **고정 서명 identity 사용**: Apple Developer 인증서가 없으면 키체인 접근(Keychain Access) 앱에서 self-signed 코드서명 인증서를 만들어 항상 그걸로 `codesign`. Xcode라면 Signing을 Automatic+개인 팀으로 고정 |
+| 앱 프로세스가 Security.framework로 직접 읽음 | 대안: `/usr/bin/security find-generic-password -s "Claude Code-credentials" -a "$USER" -w`를 서브프로세스로 실행. ACL의 "항상 허용" 대상이 Apple 서명의 안정 바이너리(`security`)가 되어 **앱을 리빌드해도 프롬프트가 재발하지 않음** (트레이드오프: 이후 다른 프로세스도 security CLI로 조용히 읽을 수 있게 됨 — README에 명시) |
+| 그래도 프롬프트가 싫은 경우 | 폴백 순서: ⑴ `~/.claude/.credentials.json` 존재 시 파일 우선(프롬프트 없음) ⑵ 키체인 ⑶ 실패 시 추정 모드 |
+
+**절대 금지**: 사용자 로그인 키체인 암호를 앱이 저장·자동입력하는 방식(`security unlock-keychain` 자동화 포함). 편하자고 보안을 무너뜨리는 안티패턴이다.
+
 **대안 스택**(참고): Python + rumps로 반나절 MVP 가능하나 애니메이션 fps·배포에 한계 → 최종은 Swift 권장. Electron은 러너 앱 용도로 리소스 과다라 배제.
 
 ---
