@@ -105,16 +105,20 @@ final class UsageEngine: ObservableObject {
         let official = main.officialEnabled ? main.official : nil
         let sinceOfficial = official.map { store.tokens(since: $0.fetchedAt, now: now) } ?? 0
 
-        // 사용률 (공식 + 보간, 폴백 시 추정) — 팝오버 게이지와 동일 규칙
+        // 사용률 (공식 + 실측 역산 보간, 폴백 시 추정) — 팝오버 게이지와 동일 규칙(GaugeMath)
         let sessionPct: Double
         if let base = official?.sessionPercent {
-            sessionPct = base + Double(sinceOfficial) / Double(main.sessionLimit) * 100
+            sessionPct = GaugeMath.interpolated(base: base,
+                                                windowTokens: snap.currentBlock?.totalTokens ?? 0,
+                                                tokensSince: sinceOfficial)
         } else {
             sessionPct = Double(snap.currentBlock?.totalTokens ?? 0) / Double(main.sessionLimit) * 100
         }
         let weeklyPct: Double
         if let base = official?.weeklyPercent {
-            weeklyPct = base + Double(sinceOfficial) / Double(main.weeklyLimit) * 100
+            weeklyPct = GaugeMath.interpolated(base: base,
+                                               windowTokens: snap.weeklyTokens,
+                                               tokensSince: sinceOfficial)
         } else {
             weeklyPct = Double(snap.weeklyTokens) / Double(main.weeklyLimit) * 100
         }
@@ -156,19 +160,29 @@ final class UsageEngine: ObservableObject {
             ?? (main.weeklyResetEnabled ? "\(main.weeklyStart.timeIntervalSince1970)" : "rolling")
 
         for threshold in alertTracker.alertsToFire(kind: .session, percent: sessionPct, windowId: sessionWindow) {
-            let remaining = remainingText(percent: sessionPct, limit: main.sessionLimit, burnRate: burnRate)
-            notify(threshold: threshold, kind: "세션", remaining: remaining)
+            // 남은 토큰: 공식 % 역산 스케일 우선, 폴백은 플랜 추정 한도
+            let remainingTokens = official?.sessionPercent.flatMap {
+                GaugeMath.remainingTokens(base: $0,
+                                          windowTokens: snap.currentBlock?.totalTokens ?? 0,
+                                          tokensSince: tokensSinceOfficialValue(official: official, snap: snap))
+            } ?? Int((100 - sessionPct) / 100 * Double(main.sessionLimit))
+            notify(threshold: threshold, kind: "세션",
+                   remaining: remainingText(remainingTokens: remainingTokens, burnRate: burnRate))
         }
         for threshold in alertTracker.alertsToFire(kind: .weekly, percent: weeklyPct, windowId: weeklyWindow) {
             notify(threshold: threshold, kind: "주간", remaining: nil)
         }
     }
 
+    private func tokensSinceOfficialValue(official: OfficialUsage?, snap: UsageStore.Snapshot) -> Int {
+        guard let fetchedAt = official?.fetchedAt else { return 0 }
+        return store.tokens(since: fetchedAt)
+    }
+
     /// "약 1시간 12분 분량 남음(현재 속도 기준)" — 속도가 없으면 nil.
-    private func remainingText(percent: Double, limit: Int, burnRate: Double) -> String? {
-        guard burnRate >= 1, percent < 100 else { return nil }
-        let remainingTokens = (100 - percent) / 100 * Double(limit)
-        let minutes = Int(remainingTokens / burnRate)
+    private func remainingText(remainingTokens: Int, burnRate: Double) -> String? {
+        guard burnRate >= 1, remainingTokens > 0 else { return nil }
+        let minutes = Int(Double(remainingTokens) / burnRate)
         let text = minutes >= 60 ? "약 \(minutes / 60)시간 \(minutes % 60)분" : "약 \(minutes)분"
         return "\(text) 분량 남음(현재 속도 기준)"
     }

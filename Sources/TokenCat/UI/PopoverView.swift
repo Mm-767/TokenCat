@@ -42,13 +42,13 @@ struct PopoverView: View {
 
         return VStack(alignment: .leading, spacing: 4) {
             if let official = engine.official, let basePct = official.sessionPercent {
-                let interp = Double(engine.tokensSinceOfficial) / Double(settings.estimatedSessionLimit) * 100
-                let pct = min(basePct + interp, 100)
+                let pct = GaugeMath.interpolated(base: basePct, windowTokens: blockTokens,
+                                                 tokensSince: engine.tokensSinceOfficial)
                 gaugeHeader(title: "🐱 세션 (5시간)", percent: pct, official: true)
                 GaugeBar(fraction: pct / 100)
                 captionRow(officialCaption(resetsAt: official.sessionResetsAt,
                                            fetchedAt: official.fetchedAt,
-                                           interpolating: interp >= 0.05))
+                                           interpolating: pct > basePct + 0.05))
                 captionRow("Claude Code 소모: \(Format.tokens(blockTokens)) tokens (JSONL 집계)")
             } else {
                 let limit = settings.estimatedSessionLimit
@@ -70,8 +70,9 @@ struct PopoverView: View {
     private var weeklySection: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let official = engine.official, let basePct = official.weeklyPercent {
-                let interp = Double(engine.tokensSinceOfficial) / Double(settings.estimatedWeeklyLimit) * 100
-                let pct = min(basePct + interp, 100)
+                let pct = GaugeMath.interpolated(base: basePct,
+                                                 windowTokens: engine.snapshot?.weeklyTokens ?? 0,
+                                                 tokensSince: engine.tokensSinceOfficial)
                 gaugeHeader(title: "📅 주간 사용량", percent: pct, official: true)
                 GaugeBar(fraction: pct / 100)
                 if let resetsAt = official.weeklyResetsAt {
