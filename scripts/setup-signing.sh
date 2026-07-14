@@ -32,7 +32,9 @@ openssl pkcs12 -export -legacy -out "$TMP/cert.p12" -inkey "$TMP/key.pem" -in "$
   -passout pass:tokencat-import 2>/dev/null \
 || openssl pkcs12 -export -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1 \
   -out "$TMP/cert.p12" -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
-  -passout pass:tokencat-import
+  -passout pass:tokencat-import 2>/dev/null \
+|| openssl pkcs12 -export -out "$TMP/cert.p12" -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
+  -passout pass:tokencat-import   # LibreSSL(맥 기본)은 기본값이 레거시 호환
 security import "$TMP/cert.p12" -k "$HOME/Library/Keychains/login.keychain-db" \
   -P tokencat-import -T /usr/bin/codesign > /dev/null
 

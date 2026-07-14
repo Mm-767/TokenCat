@@ -19,7 +19,10 @@ if ! security find-identity -v -p codesigning 2>/dev/null | grep -q "$CODESIGN_I
   exit 1
 fi
 
-export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+# xcode-select가 CLT를 가리키는데 Xcode가 있으면 Xcode 툴체인 사용 (다른 머신 호환)
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
 
 echo "▸ release 빌드"
 swift build -c release
@@ -49,4 +52,4 @@ if [ -n "${NOTARY_PROFILE:-}" ]; then
 fi
 
 echo "✓ 완료: $APP, dist/TokenCat.dmg"
-codesign -dv "$APP" 2>&1 | head -3
+codesign -dv "$APP" 2>&1 | grep -E "Identifier=|Authority" || true
