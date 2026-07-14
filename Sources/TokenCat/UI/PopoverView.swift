@@ -167,7 +167,7 @@ struct PopoverView: View {
             Button(action: openDailyDetail) {
                 Label("일별 상세", systemImage: "chart.bar")
             }
-            Button { engine.refreshNow() } label: {
+            Button { engine.refreshNow(forceOfficial: true) } label: {
                 Label("새로고침", systemImage: "arrow.clockwise")
             }
             Button(action: openSettings) {

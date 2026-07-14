@@ -64,16 +64,19 @@ final class UsageEngine: ObservableObject {
 
         let officialTimer = DispatchSource.makeTimerSource(queue: workQueue)
         officialTimer.schedule(deadline: .now() + 1, repeating: Self.officialPollInterval)
-        officialTimer.setEventHandler { [weak self] in self?.fetchOfficial(throttled: false) }
+        officialTimer.setEventHandler { [weak self] in self?.fetchOfficial(minInterval: 0) }
         officialTimer.resume()
         self.officialTimer = officialTimer
     }
 
-    /// 팝오버 열림/새로고침: JSONL 즉시 재스캔 + 공식 재조회(30초 스로틀).
-    func refreshNow() {
+    /// JSONL 즉시 재스캔 + 공식 재조회.
+    /// 팝오버 열림: 30초 스로틀(§F3). 새로고침 버튼: forceOfficial=true로 우회
+    /// (연타 방지 5초만 유지) — 버튼이 팝오버 열림 직후 스로틀에 걸려 아무것도
+    /// 안 하던 문제 방지.
+    func refreshNow(forceOfficial: Bool = false) {
         workQueue.async { [weak self] in
             self?.tick()
-            self?.fetchOfficial(throttled: true)
+            self?.fetchOfficial(minInterval: forceOfficial ? 5 : Self.officialRefreshThrottle)
         }
     }
 
@@ -228,14 +231,14 @@ final class UsageEngine: ObservableObject {
 
     // MARK: - 공식 % 폴링 (180초)
 
-    private func fetchOfficial(throttled: Bool) {
+    private func fetchOfficial(minInterval: TimeInterval) {
         let enabled = DispatchQueue.main.sync { settings.officialEnabled }
         guard enabled else {
             DispatchQueue.main.async { self.official = nil }
             return
         }
-        if throttled, let last = lastOfficialAttempt,
-           Date().timeIntervalSince(last) < Self.officialRefreshThrottle { return }
+        if minInterval > 0, let last = lastOfficialAttempt,
+           Date().timeIntervalSince(last) < minInterval { return }
         lastOfficialAttempt = Date()
 
         Task { [weak self] in
