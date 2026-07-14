@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os.log
 import UsageCore
 
 /// JSONL 감시 → 집계 → burn rate → 고양이 상태 + 공식 % 폴링 + 한도 알림을 묶는 엔진.
@@ -35,12 +36,26 @@ final class UsageEngine: ObservableObject {
     // 이하 상태는 workQueue 전용
     private var alertTracker = LimitAlertTracker()
     private var lastBlockStart: Date?
+    private var lastTickAt: Date?
+
+    /// 진단용: `log stream --predicate 'subsystem == "dev.tokencat.TokenCat"' --info`
+    private let log = Logger(subsystem: "dev.tokencat.TokenCat", category: "engine")
 
     init(settings: AppSettings = .shared) {
         self.settings = settings
     }
 
+    private var settingsPollIntervalCached: TimeInterval = 3
+    private var activityToken: NSObjectProtocol?
+
     func start() {
+        settingsPollIntervalCached = settings.pollInterval
+        log.info("엔진 시작: 폴링 \(self.settingsPollIntervalCached)s, 공식 폴링 \(Self.officialPollInterval)s")
+        // App Nap 방지: 메뉴바 전용 앱은 냅 대상이 되어 백그라운드 타이머가
+        // 지연·정지될 수 있다(고양이 애니메이션은 돌지만 데이터만 멈춘 것처럼 보임).
+        activityToken = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep],
+            reason: "토큰 사용량 폴링")
         let jsonlTimer = DispatchSource.makeTimerSource(queue: workQueue)
         jsonlTimer.schedule(deadline: .now(), repeating: settings.pollInterval)
         jsonlTimer.setEventHandler { [weak self] in self?.tick() }
@@ -93,6 +108,11 @@ final class UsageEngine: ObservableObject {
 
     private func tick() {
         let now = Date()
+        // 틱 간격이 폴링 주기의 3배를 넘으면 타이머가 지연/정지된 것 — 진단 신호
+        if let last = lastTickAt, now.timeIntervalSince(last) > settingsPollIntervalCached * 3 {
+            log.warning("tick 지연: \(Int(now.timeIntervalSince(last)))초 만에 재개")
+        }
+        lastTickAt = now
         let main = mainState(now: now)
 
         store.add(watcher.scan(now: now))
@@ -135,6 +155,8 @@ final class UsageEngine: ObservableObject {
                             sessionPct: sessionPct, weeklyPct: weeklyPct, burnRate: rate)
         }
         checkNewBlock(snap: snap, enabled: main.newSessionAlertEnabled)
+
+        log.debug("tick: today=\(snap.todayTokens) block=\(snap.currentBlock?.totalTokens ?? -1) last60s=\(snap.tokensLast60s) rate=\(Int(rate)) state=\(state.rawValue, privacy: .public) 세션%=\(String(format: "%.1f", sessionPct), privacy: .public)")
 
         DispatchQueue.main.async {
             self.snapshot = snap
@@ -220,12 +242,14 @@ final class UsageEngine: ObservableObject {
             guard let self else { return }
             do {
                 let usage = try await self.provider.fetch()
+                self.log.info("공식 조회 성공: 세션 \(usage.sessionPercent ?? -1)% 주간 \(usage.weeklyPercent ?? -1)%")
                 await MainActor.run {
                     self.official = usage
                     self.tokensSinceOfficial = 0
                 }
             } catch {
                 // 실패 시 추정 모드 폴백 (§8 — 앱은 죽지 않는다). 다음 폴링에서 재시도.
+                self.log.error("공식 조회 실패 → 추정 모드 폴백: \(String(describing: error))")
                 await MainActor.run { self.official = nil }
             }
         }

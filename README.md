@@ -57,6 +57,15 @@ swift test                    # 단위 테스트
 scripts/build-app.sh          # 앱 번들 + dmg만 생성
 ```
 
+갱신이 멈춘 것 같을 때 실행 중인 앱의 엔진 동작을 실시간 확인:
+
+```bash
+/usr/bin/log stream --predicate 'subsystem == "dev.tokencat.TokenCat"' --level debug --style compact
+```
+
+3초마다 `tick:` 줄(오늘/블록/속도), 180초마다 `공식 조회` 줄이 보여야 정상.
+`tick 지연` 경고가 보이면 이슈로 제보해 주세요.
+
 ad-hoc 서명은 사용하지 않습니다 — 빌드마다 서명이 바뀌면 키체인·알림 권한
 승인이 리셋되어 프롬프트가 반복되기 때문입니다 (docs/usage-endpoint.md의
 "토큰 로드 설계" 참조). `scripts/setup-signing.sh`가 만드는 고정 identity
