@@ -19,7 +19,9 @@
       "Bash(scripts/build-app.sh)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -q -m 'TokenCat v1.0 — M0~M3 완료 *)"
+      "Bash(git commit -q -m 'TokenCat v1.0 — M0~M3 완료 *)",
+      "Bash(open dist/TokenCat.app)",
+      "Bash(git commit -q -m '커스텀 픽셀 아트 에셋 — 팝타르트 고양이 + 무지개 트레일 \\(자체 제작\\) *)"
     ]
   }
 }
