@@ -17,11 +17,26 @@ Content-Type: application/json
 - 폴링 간격 180초 준수 (§F3 갱신 전략).
 - 토큰은 읽기 전용, Anthropic 외 어디에도 전송·로깅 금지 (§4 주석 규칙).
 
+## 토큰 로드 설계 (키체인 프롬프트 최소화)
+
+1. **액세스 토큰은 메모리 캐시** — 자격증명 읽기는 만료(expiresAt, 없으면 ~55분 가정)
+   시에만. 매 폴링(180초)마다 키체인을 읽으면 프롬프트가 반복될 수 있어 금지.
+2. **`~/.claude/.credentials.json` 파일이 있으면 키체인보다 먼저 사용.**
+3. 키체인은 **`/usr/bin/security` 서브프로세스**로 읽는다:
+   `security find-generic-password -s "Claude Code-credentials" -a $USER -w`
+   — ACL의 "항상 허용"이 security 바이너리에 걸리므로 앱을 리빌드해도 승인 유지.
+   Security.framework 직접 호출(SecItemCopyMatching)은 앱 서명 기준 ACL이라
+   서명이 바뀔 때마다 프롬프트가 재발해 사용 금지.
+4. 401 응답 시 캐시 무효화 → 재읽기 → 1회 재시도.
+5. **unlock-keychain 자동화·암호 저장류 편법 금지.** 신뢰 등록/최초 접근 시
+   macOS가 묻는 1회 프롬프트는 정상 동작이다.
+6. 앱 서명도 고정 identity("TokenCat Dev", scripts/setup-signing.sh) — ad-hoc 금지.
+   빌드마다 서명이 바뀌면 키체인 ACL·TCC(알림 등) 승인이 리셋되기 때문.
+
 ## 토큰 위치 (macOS 실측 — 기획안 §2와 다름)
 
 1. **이 머신엔 `~/.claude/.credentials.json`이 없다.** macOS는 **키체인**에 저장:
-   - 서비스명 `Claude Code-credentials` (generic password)
-   - `security find-generic-password -s "Claude Code-credentials" -w` → JSON 문자열
+   - 서비스명 `Claude Code-credentials` (generic password), 계정 = 사용자명
 2. JSON 구조:
    ```json
    {

@@ -53,4 +53,26 @@ final class OAuthUsageProviderTests: XCTestCase {
         XCTAssertNil(OAuthUsageProvider.parse(data: Data("{}".utf8), fetchedAt: Date()))
         XCTAssertNil(OAuthUsageProvider.parse(data: Data("not json".utf8), fetchedAt: Date()))
     }
+
+    // MARK: 자격증명 파싱 (토큰 값은 픽스처 — 실제 토큰 아님)
+
+    func testParseCredentialsWithExpiry() throws {
+        let json = #"{"claudeAiOauth":{"accessToken":"tok_fixture","expiresAt":1789400000000}}"#
+        let parsed = try XCTUnwrap(OAuthUsageProvider.parseCredentials(Data(json.utf8)))
+        XCTAssertEqual(parsed.token, "tok_fixture")
+        XCTAssertEqual(parsed.expiresAt, Date(timeIntervalSince1970: 1_789_400_000))
+    }
+
+    func testParseCredentialsWithoutExpiryAssumesOneHour() throws {
+        let now = Date()
+        let json = #"{"claudeAiOauth":{"accessToken":"tok_fixture"}}"#
+        let parsed = try XCTUnwrap(OAuthUsageProvider.parseCredentials(Data(json.utf8), now: now))
+        XCTAssertEqual(parsed.expiresAt, now.addingTimeInterval(OAuthUsageProvider.defaultTokenLifetime))
+    }
+
+    func testParseCredentialsRejectsMissingToken() {
+        XCTAssertNil(OAuthUsageProvider.parseCredentials(Data("{}".utf8)))
+        XCTAssertNil(OAuthUsageProvider.parseCredentials(Data(#"{"claudeAiOauth":{"accessToken":""}}"#.utf8)))
+        XCTAssertNil(OAuthUsageProvider.parseCredentials(Data("garbage".utf8)))
+    }
 }
