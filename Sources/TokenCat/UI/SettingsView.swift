@@ -1,0 +1,108 @@
+import SwiftUI
+import UsageCore
+
+/// §F5 설정. 변경은 UserDefaults에 즉시 저장되고 게이지에 바로 반영된다.
+struct SettingsView: View {
+    @ObservedObject var settings: AppSettings
+    @ObservedObject var engine: UsageEngine
+
+    @State private var calibrationInput = ""
+    @State private var calibrationMessage: String?
+
+    var body: some View {
+        Form {
+            Section("데이터 소스") {
+                Toggle("공식 사용량 연동 (Anthropic 계정 기준)", isOn: $settings.officialEnabled)
+                Text("끄거나 조회에 실패하면 아래 플랜 기반 추정 모드로 폴백합니다.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("추정 모드 플랜") {
+                Picker("플랜", selection: $settings.plan) {
+                    ForEach(Plan.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                if settings.plan == .custom {
+                    TextField("세션 한도 (tokens)", value: $settings.customSessionLimit, format: .number)
+                }
+                LabeledContent("추정 세션 한도", value: Format.tokens(settings.estimatedSessionLimit) + " (추정)")
+                LabeledContent("추정 주간 한도", value: Format.tokens(settings.estimatedWeeklyLimit) + " (추정)")
+            }
+
+            Section("한도 캘리브레이션") {
+                HStack {
+                    TextField("Claude Code /usage의 세션 % 입력", text: $calibrationInput)
+                    Button("보정") { calibrate() }
+                        .disabled(Double(calibrationInput) == nil)
+                }
+                if settings.calibratedSessionLimit > 0 {
+                    HStack {
+                        Text("보정된 한도: \(Format.tokens(settings.calibratedSessionLimit))")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("초기화") { settings.calibratedSessionLimit = 0 }
+                            .controlSize(.mini)
+                    }
+                }
+                if let message = calibrationMessage {
+                    Text(message).font(.caption).foregroundStyle(.orange)
+                }
+            }
+
+            Section("주간 리셋 (추정 모드용)") {
+                Toggle("리셋 요일·시각 수동 설정 (off면 롤링 7일)", isOn: $settings.weeklyResetEnabled)
+                if settings.weeklyResetEnabled {
+                    Picker("요일", selection: $settings.weeklyResetWeekday) {
+                        ForEach(1...7, id: \.self) { Text(Format.weekdayName($0)).tag($0) }
+                    }
+                    Picker("시각", selection: $settings.weeklyResetHour) {
+                        ForEach(0..<24, id: \.self) { Text(String(format: "%02d:00", $0)).tag($0) }
+                    }
+                }
+            }
+
+            Section("알림") {
+                Toggle("한도 임박 알림 (80% / 95%, 각 1회)", isOn: $settings.limitAlertsEnabled)
+                Toggle("새 세션 시작 알림 (5시간 창 리셋)", isOn: $settings.newSessionAlertEnabled)
+                if !Notifier.shared.available {
+                    Text("알림은 빌드된 TokenCat.app에서만 동작합니다 (swift run 개발 실행 제외).")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
+
+            Section("일반") {
+                Toggle("로그인 시 자동 시작", isOn: $settings.launchAtLogin)
+                    .disabled(!LaunchAtLogin.available)
+                if !LaunchAtLogin.available {
+                    Text("자동 시작은 빌드된 TokenCat.app에서만 설정할 수 있습니다.")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
+
+            Section("러너") {
+                Picker("민감도", selection: $settings.sensitivity) {
+                    Text("낮음").tag(Thresholds.Sensitivity.low)
+                    Text("보통").tag(Thresholds.Sensitivity.normal)
+                    Text("높음").tag(Thresholds.Sensitivity.high)
+                }
+                .pickerStyle(.segmented)
+                LabeledContent("폴링 주기", value: String(format: "%.0f초", settings.pollInterval))
+                Text("폴링 주기 변경은 앱 재시작 후 적용됩니다.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 420)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func calibrate() {
+        guard let percent = Double(calibrationInput) else { return }
+        let blockTokens = engine.snapshot?.currentBlock?.totalTokens ?? 0
+        if let limit = PlanLimits.calibratedLimit(currentBlockTokens: blockTokens, usagePercent: percent) {
+            settings.calibratedSessionLimit = limit
+            calibrationMessage = nil
+            calibrationInput = ""
+        } else {
+            calibrationMessage = "보정 불가: 활성 세션 토큰이 없거나 %가 0~100 범위를 벗어났습니다."
+        }
+    }
+}

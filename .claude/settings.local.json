@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(swift test *)",
+      "Bash(xcode-select -p)",
+      "Read(//Applications/**)",
+      "Bash(xcrun --find xctest)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift build)",
+      "Bash(DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift run TokenCat --report)",
+      "Bash(npx -y ccusage blocks)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pkill -x TokenCat)",
+      "Bash(.build/debug/TokenCat --report)",
+      "Bash(npx -y ccusage blocks --json)",
+      "Bash(chmod +x /Users/mh_02/projects/TokenCat/scripts/build-app.sh)",
+      "Bash(scripts/build-app.sh)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'TokenCat v1.0 — M0~M3 완료 *)"
+    ]
+  }
+}
