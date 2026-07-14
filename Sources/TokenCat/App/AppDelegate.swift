@@ -82,7 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 rootView: SettingsView(settings: engine.settings, engine: engine))
             let window = NSWindow(contentViewController: hosting)
             window.title = "TokenCat 설정"
-            window.styleMask = [.titled, .closable]
+            window.styleMask = [.titled, .closable, .resizable]   // 세로 드래그로 크기 조절
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window

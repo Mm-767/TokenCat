@@ -93,9 +93,9 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 420)
-        .fixedSize(horizontal: false, vertical: true)
+        .formStyle(.grouped)   // 내용이 넘치면 Form이 스스로 스크롤
+        .frame(width: 400)
+        .frame(minHeight: 340, idealHeight: 460, maxHeight: 600)
     }
 
     private func calibrate() {
