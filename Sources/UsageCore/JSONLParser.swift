@@ -8,6 +8,7 @@ public enum JSONLParser {
         let type: String
         let timestamp: String?
         let requestId: String?
+        let entrypoint: String?
         let message: Message?
 
         struct Message: Decodable {
@@ -59,7 +60,8 @@ public enum JSONLParser {
             inputTokens: usage.input_tokens ?? 0,
             outputTokens: usage.output_tokens ?? 0,
             cacheCreationTokens: usage.cache_creation_input_tokens ?? 0,
-            cacheReadTokens: usage.cache_read_input_tokens ?? 0
+            cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+            entrypoint: record.entrypoint
         )
     }
 

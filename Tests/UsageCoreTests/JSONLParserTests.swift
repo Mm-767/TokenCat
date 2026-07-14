@@ -5,7 +5,7 @@ final class JSONLParserTests: XCTestCase {
 
     // docs/jsonl-schema.md의 실물 스키마를 그대로 축약한 픽스처
     static let validLine = """
-    {"type":"assistant","timestamp":"2026-07-13T03:01:38.767Z","requestId":"req_011AAA","sessionId":"s1","uuid":"u1","message":{"id":"msg_01XYZ","model":"claude-sonnet-5","role":"assistant","usage":{"input_tokens":12804,"cache_creation_input_tokens":6154,"cache_read_input_tokens":28286,"output_tokens":260,"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":6154,"ephemeral_5m_input_tokens":0},"speed":"standard"}}}
+    {"type":"assistant","timestamp":"2026-07-13T03:01:38.767Z","requestId":"req_011AAA","sessionId":"s1","uuid":"u1","entrypoint":"cli","message":{"id":"msg_01XYZ","model":"claude-sonnet-5","role":"assistant","usage":{"input_tokens":12804,"cache_creation_input_tokens":6154,"cache_read_input_tokens":28286,"output_tokens":260,"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":6154,"ephemeral_5m_input_tokens":0},"speed":"standard"}}}
     """
 
     func testParsesValidAssistantLine() throws {
@@ -53,6 +53,23 @@ final class JSONLParserTests: XCTestCase {
     func testParsesTimestampWithoutFractionalSeconds() {
         let line = Self.validLine.replacingOccurrences(of: "03:01:38.767Z", with: "03:01:38Z")
         XCTAssertNotNil(JSONLParser.parse(line: line))
+    }
+
+    func testEntrypointAndProgrammaticFlag() throws {
+        let interactive = try XCTUnwrap(JSONLParser.parse(line: Self.validLine))
+        XCTAssertEqual(interactive.entrypoint, "cli")
+        XCTAssertFalse(interactive.isProgrammatic)
+
+        let sdkLine = Self.validLine.replacingOccurrences(of: "\"entrypoint\":\"cli\"",
+                                                          with: "\"entrypoint\":\"sdk-ts\"")
+        let programmatic = try XCTUnwrap(JSONLParser.parse(line: sdkLine))
+        XCTAssertTrue(programmatic.isProgrammatic)
+
+        // entrypoint 없는 구버전 레코드도 파싱되고 인터랙티브 취급
+        let noEntry = Self.validLine.replacingOccurrences(of: "\"entrypoint\":\"cli\",", with: "")
+        let legacy = try XCTUnwrap(JSONLParser.parse(line: noEntry))
+        XCTAssertNil(legacy.entrypoint)
+        XCTAssertFalse(legacy.isProgrammatic)
     }
 
     func testMissingTokenFieldsDefaultToZero() throws {

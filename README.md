@@ -45,15 +45,19 @@ CODESIGN_IDENTITY="Developer ID Application: 이름 (TEAMID)" NOTARY_PROFILE=tok
   추정 모드로 폴백합니다 (앱은 죽지 않습니다).
 - 추정 모드의 플랜 한도는 커뮤니티 추정치입니다. 설정의 캘리브레이션(`/usage`
   실측 % 입력)으로 보정하세요.
-- 2026-06-15부터 프로그래매틱 사용(Agent SDK, `claude -p`)은 별도 크레딧 풀이지만,
-  v1의 JSONL 집계(고양이 속도·오늘 토큰)는 구분 없이 합산합니다.
+- 2026-06-15부터 프로그래매틱 사용(Agent SDK, `claude -p`)은 별도 크레딧 풀입니다.
+  JSONL 집계는 합산하되, entrypoint에 "sdk"가 포함된 레코드가 있으면 오늘 섹션에
+  "프로그래매틱 N tokens 포함" 캡션으로 분리 표시합니다 (관용 판별 — 실측 데이터에
+  SDK 레코드가 없어 마커는 추정).
 - OAuth 토큰은 읽기 전용으로 사용하며 Anthropic 외 어디에도 전송·저장·로깅하지 않습니다.
 
 ## 스프라이트 교체
 
-기본 스프라이트는 코드 생성 픽셀 고양이입니다. `Sources/TokenCat/Assets/`에
-`cat_run_0~7.png`, `cat_sleep_0~1.png`, `cat_tired_0~1.png`, `cat_alert_0~1.png`
-(36×22pt @1x / 72×44px @2x)를 넣고 다시 빌드하면 자동 교체됩니다.
+기본 스프라이트는 코드 생성 픽셀 고양이입니다 (색상 테마 3종: 자동/주황/하늘 —
+팝오버 🐾 버튼으로 순환). `Sources/TokenCat/Assets/`에 `cat_run_0~7.png`,
+`cat_rainbow_0~7.png`(무지개 모드 전용, 선택), `cat_sleep_0~1.png`,
+`cat_tired_0~1.png`, `cat_alert_0~1.png` (36×22pt @1x / 72×44px @2x)를 넣고
+다시 빌드하면 자동 교체됩니다.
 자세한 규격: [Sources/TokenCat/Assets/README.md](Sources/TokenCat/Assets/README.md)
 
 냥캣 오마주 에셋은 전부 자체 제작이어야 하며 원작 이미지를 사용하지 마세요.

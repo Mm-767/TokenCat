@@ -78,6 +78,10 @@ struct SettingsView: View {
             }
 
             Section("러너") {
+                Picker("색상 테마", selection: $settings.spriteTheme) {
+                    ForEach(SpriteTheme.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
                 Picker("민감도", selection: $settings.sensitivity) {
                     Text("낮음").tag(Thresholds.Sensitivity.low)
                     Text("보통").tag(Thresholds.Sensitivity.normal)

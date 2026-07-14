@@ -5,7 +5,8 @@
 
 | 파일 | 용도 | 크기 |
 |---|---|---|
-| `cat_run_0.png` ~ `cat_run_7.png` | 달리기 8프레임 (산책/달리기/질주/무지개 공용) | 36×22pt (@1x) / 72×44px (@2x) |
+| `cat_run_0.png` ~ `cat_run_7.png` | 달리기 8프레임 (산책/달리기/질주 공용) | 36×22pt (@1x) / 72×44px (@2x) |
+| `cat_rainbow_0.png` ~ `cat_rainbow_7.png` | 🌈 무지개 모드 전용 8프레임 (트레일 포함 권장, 없으면 cat_run 재사용) | 동일 |
 | `cat_sleep_0.png`, `cat_sleep_1.png` | 잠자기 2프레임 | 동일 |
 | `cat_tired_0.png`, `cat_tired_1.png` | 🥵 지침 2프레임 (사용률 80%+) | 동일 |
 | `cat_alert_0.png`, `cat_alert_1.png` | ⚠️ 경고 2프레임 (사용률 95%+) | 동일 |

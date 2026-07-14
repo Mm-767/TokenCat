@@ -28,6 +28,7 @@
 | `message.id` | string | API 메시지 ID |
 | `message.model` | string | 예: `claude-sonnet-5`, `claude-opus-4-8`, `claude-fable-5`, `<synthetic>` |
 | `message.usage` | object | 아래 참조. 실측에서 누락 0건 (단, 방어적으로 누락 시 skip) |
+| `entrypoint` | string | 실측값: `"cli"`(209건), `"claude-desktop"`(1419건) — 둘 다 인터랙티브. 프로그래매틱(Agent SDK 등) 레코드는 로컬에 없어 미관측 → 파서는 "sdk" 포함 여부로 관용 판별 |
 
 ### message.usage (실측 전체 형태)
 

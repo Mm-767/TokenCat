@@ -57,6 +57,11 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(newSessionAlertEnabled, forKey: "newSessionAlertEnabled") }
     }
 
+    /// 러너 색상 테마 (v1.1 — 고양이 1종 + 색상 3종, 코드 생성 스프라이트에만 적용).
+    @Published var spriteTheme: SpriteTheme {
+        didSet { defaults.set(spriteTheme.rawValue, forKey: "spriteTheme") }
+    }
+
     /// 로그인 시 자동 시작 (SMAppService — 번들 앱에서만 동작).
     @Published var launchAtLogin: Bool {
         didSet {
@@ -79,6 +84,7 @@ final class AppSettings: ObservableObject {
         pollInterval = p > 0 ? p : 3.0
         limitAlertsEnabled = defaults.object(forKey: "limitAlertsEnabled") as? Bool ?? true
         newSessionAlertEnabled = defaults.bool(forKey: "newSessionAlertEnabled")
+        spriteTheme = SpriteTheme(rawValue: defaults.string(forKey: "spriteTheme") ?? "") ?? .auto
         launchAtLogin = LaunchAtLogin.isEnabled
     }
 

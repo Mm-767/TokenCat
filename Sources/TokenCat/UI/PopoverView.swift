@@ -7,6 +7,7 @@ struct PopoverView: View {
     @ObservedObject var engine: UsageEngine
     @ObservedObject var settings: AppSettings
     var openSettings: () -> Void = {}
+    var openDailyDetail: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -118,11 +119,16 @@ struct PopoverView: View {
     }
 
     private var todaySection: some View {
-        HStack {
-            Text("💰 오늘").font(.system(size: 12, weight: .semibold))
-            Spacer()
-            Text("\(Format.tokens(engine.snapshot?.todayTokens ?? 0)) tokens · \(Format.usd(engine.snapshot?.todayCostUSD ?? 0)) (추정)")
-                .font(.system(size: 11)).monospacedDigit()
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("💰 오늘").font(.system(size: 12, weight: .semibold))
+                Spacer()
+                Text("\(Format.tokens(engine.snapshot?.todayTokens ?? 0)) tokens · \(Format.usd(engine.snapshot?.todayCostUSD ?? 0)) (추정)")
+                    .font(.system(size: 11)).monospacedDigit()
+            }
+            if let programmatic = engine.snapshot?.todayProgrammaticTokens, programmatic > 0 {
+                captionRow("프로그래매틱(SDK) \(Format.tokens(programmatic)) tokens 포함 — 별도 크레딧 풀")
+            }
         }
     }
 
@@ -152,6 +158,14 @@ struct PopoverView: View {
 
     private var buttonColumn: some View {
         VStack(spacing: 8) {
+            Button {
+                settings.spriteTheme = settings.spriteTheme.next   // 🐾 색상 3종 순환
+            } label: {
+                Label("러너 색상: \(settings.spriteTheme.displayName)", systemImage: "pawprint")
+            }
+            Button(action: openDailyDetail) {
+                Label("일별 상세", systemImage: "chart.bar")
+            }
             Button { engine.refreshNow() } label: {
                 Label("새로고침", systemImage: "arrow.clockwise")
             }

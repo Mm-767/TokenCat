@@ -10,6 +10,14 @@ public struct UsageEvent: Equatable, Sendable {
     public let outputTokens: Int
     public let cacheCreationTokens: Int
     public let cacheReadTokens: Int
+    /// 레코드 최상위 entrypoint (실측: "cli", "claude-desktop"). 프로그래매틱 구분용.
+    public let entrypoint: String?
+
+    /// 프로그래매틱 사용 추정 (Agent SDK 등 — 2026-06-15부터 별도 크레딧 풀).
+    /// 실측 데이터에 SDK 레코드가 없어 "sdk" 포함 여부로 관용 판별 (docs/jsonl-schema.md).
+    public var isProgrammatic: Bool {
+        entrypoint?.lowercased().contains("sdk") == true
+    }
 
     /// 중복 제거 키. docs/jsonl-schema.md: 같은 응답이 최대 6줄로 중복 기록됨.
     public var dedupKey: String { "\(messageId):\(requestId)" }
@@ -21,7 +29,8 @@ public struct UsageEvent: Equatable, Sendable {
 
     public init(timestamp: Date, model: String, requestId: String, messageId: String,
                 inputTokens: Int, outputTokens: Int,
-                cacheCreationTokens: Int, cacheReadTokens: Int) {
+                cacheCreationTokens: Int, cacheReadTokens: Int,
+                entrypoint: String? = nil) {
         self.timestamp = timestamp
         self.model = model
         self.requestId = requestId
@@ -30,5 +39,6 @@ public struct UsageEvent: Equatable, Sendable {
         self.outputTokens = outputTokens
         self.cacheCreationTokens = cacheCreationTokens
         self.cacheReadTokens = cacheReadTokens
+        self.entrypoint = entrypoint
     }
 }

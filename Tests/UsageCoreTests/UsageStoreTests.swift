@@ -99,6 +99,29 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(store.tokens(since: now.addingTimeInterval(-3600), now: now), 300)
     }
 
+    func testDailyTotalsAndProgrammaticSplit() {
+        let store = UsageStore()
+        let calendar = Calendar.current
+        let now = calendar.startOfDay(for: Date()).addingTimeInterval(2 * 3600) // 오늘 02:00
+        let sdkEvent = UsageEvent(timestamp: now.addingTimeInterval(-1800), model: "claude-sonnet-5",
+                                  requestId: "r_sdk", messageId: "m_sdk",
+                                  inputTokens: 400, outputTokens: 0,
+                                  cacheCreationTokens: 0, cacheReadTokens: 0,
+                                  entrypoint: "sdk-py")
+        store.add([
+            event(minutesAgo: 60, tokens: 100, id: "t1", now: now),      // 오늘 01:00
+            sdkEvent,                                                     // 오늘 01:30 (SDK)
+            event(minutesAgo: 5 * 60, tokens: 200, id: "y1", now: now),  // 전날 21:00
+        ])
+        let snap = store.snapshot(now: now)
+        XCTAssertEqual(snap.todayTokens, 500)
+        XCTAssertEqual(snap.todayProgrammaticTokens, 400)
+        XCTAssertEqual(snap.dailyTotals.count, 2)
+        XCTAssertEqual(snap.dailyTotals[0].tokens, 500)   // 최신(오늘)부터
+        XCTAssertEqual(snap.dailyTotals[1].tokens, 200)
+        XCTAssertGreaterThan(snap.dailyTotals[0].costUSD, 0)
+    }
+
     func testCostUsesPricingTable() {
         let store = UsageStore()
         let now = Date()

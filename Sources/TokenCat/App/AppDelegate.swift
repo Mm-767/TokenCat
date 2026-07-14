@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let engine = UsageEngine()
     private var popover: NSPopover?
     private var settingsWindow: NSWindow?
+    private var dailyDetailWindow: NSWindow?
     private var cancellables: Set<AnyCancellable> = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -25,7 +26,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         animator.appearanceProvider = { [weak self] in
             self?.statusItem.button?.effectiveAppearance
         }
+        animator.themeProvider = { [weak self] in
+            self?.engine.settings.spriteTheme ?? .auto
+        }
         animator.set(display: .normal(.sleeping))
+
+        // 러너 색상 변경 → 프레임 다시 그리기
+        engine.settings.$spriteTheme
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.animator.reloadFrames() }
+            .store(in: &cancellables)
 
         // 한도 오버라이드(§F2): 80%+ 🥵, 95%+ ⚠️ — 속도 상태보다 우선
         Publishers.CombineLatest(engine.$catState, engine.$alertLevel)
@@ -54,9 +65,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .darkAqua)   // RunCat 스타일 다크 팝오버
         popover.contentViewController = NSHostingController(
-            rootView: PopoverView(engine: engine, settings: engine.settings) { [weak self] in
-                self?.openSettings()
-            })
+            rootView: PopoverView(engine: engine, settings: engine.settings,
+                                  openSettings: { [weak self] in self?.openSettings() },
+                                  openDailyDetail: { [weak self] in self?.openDailyDetail() }))
         if let button = statusItem.button {
             engine.refreshNow()   // 여는 순간 JSONL 재스캔 + 공식 재조회(30초 스로틀)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -77,6 +88,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func openDailyDetail() {
+        popover?.performClose(nil)
+        if dailyDetailWindow == nil {
+            let hosting = NSHostingController(rootView: DailyDetailView(engine: engine))
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "일별 사용 내역"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            dailyDetailWindow = window
+        }
+        dailyDetailWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }

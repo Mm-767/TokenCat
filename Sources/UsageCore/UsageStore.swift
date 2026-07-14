@@ -19,6 +19,16 @@ public final class UsageStore {
         public let weeklyModelTokens: [String: Int]
         /// 최근 30분 1분 버킷 토큰 (오래된 것부터, 30개).
         public let sparkline: [Int]
+        /// 오늘 프로그래매틱(SDK) 사용분 — 별도 크레딧 풀이라 분리 표시 (v1.1).
+        public let todayProgrammaticTokens: Int
+        /// 일별 합계 (최신 날짜부터). 일별 상세 시트용.
+        public let dailyTotals: [DailyTotal]
+    }
+
+    public struct DailyTotal: Equatable, Sendable {
+        public let dayStart: Date
+        public let tokens: Int
+        public let costUSD: Double
     }
 
     private let queue = DispatchQueue(label: "tokencat.usagestore")
@@ -64,17 +74,23 @@ public final class UsageStore {
 
             var todayTokens = 0
             var todayCost = 0.0
+            var todayProgrammatic = 0
             var last60s = 0
             var weeklyTokens = 0
             var weeklyModelTokens: [String: Int] = [:]
             var sparkline = [Int](repeating: 0, count: Self.sparklineMinutes)
+            var daily: [Date: (tokens: Int, cost: Double)] = [:]
 
             for event in events where event.timestamp <= now {
                 let tokens = event.totalTokens
                 if event.timestamp >= dayStart {
                     todayTokens += tokens
                     todayCost += PricingTable.cost(of: event)
+                    if event.isProgrammatic { todayProgrammatic += tokens }
                 }
+                let eventDay = calendar.startOfDay(for: event.timestamp)
+                daily[eventDay, default: (0, 0)].tokens += tokens
+                daily[eventDay]!.cost += PricingTable.cost(of: event)
                 if event.timestamp > now.addingTimeInterval(-60) {
                     last60s += tokens
                 }
@@ -99,7 +115,11 @@ public final class UsageStore {
                 totalEventCount: events.count,
                 weeklyTokens: weeklyTokens,
                 weeklyModelTokens: weeklyModelTokens,
-                sparkline: sparkline
+                sparkline: sparkline,
+                todayProgrammaticTokens: todayProgrammatic,
+                dailyTotals: daily
+                    .map { DailyTotal(dayStart: $0.key, tokens: $0.value.tokens, costUSD: $0.value.cost) }
+                    .sorted { $0.dayStart > $1.dayStart }
             )
         }
     }
