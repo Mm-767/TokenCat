@@ -1,4 +1,4 @@
-# 🐱 TokenCat — 프로젝트 포트폴리오
+# 🐱 TokenCat
 
 <p align="center">
   <img src="assets/tokencat-run.gif" width="252" alt="TokenCat — 달리는 픽셀 고양이">
